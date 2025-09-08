@@ -28,6 +28,7 @@ struct ConversationInfo {
     last_message_time: Timestamp,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct FederationSetup {
     federation_id: String,
@@ -37,6 +38,7 @@ struct FederationSetup {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum SetupStatus {
     WaitingForGuardians,
     ConfiguringServers,
