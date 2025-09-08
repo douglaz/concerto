@@ -1,0 +1,63 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    # Cache cargo registry for faster builds
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-${{ runner.os }}-
+    
+    - name: Check formatting
+      run: nix develop -c cargo fmt --check
+    
+    - name: Run linting
+      run: nix develop -c cargo clippy --all-targets -- -D warnings
+    
+    - name: Build FeLaaS
+      run: nix develop -c cargo build --package felaas-oss
+    
+    - name: Build Guardianito
+      run: nix develop -c cargo build --package guardianito-oss
+    
+    - name: Build Integration Tests
+      run: nix develop -c cargo build --package felaas-oss-integration-tests
+    
+    - name: Run FeLaaS tests
+      run: nix develop -c cargo test --package felaas-oss
+    
+    - name: Run Guardianito tests
+      run: nix develop -c cargo test --package guardianito-oss
+    
+    - name: Run workspace tests
+      run: nix develop -c cargo test --workspace
+    
+    - name: Build release binaries
+      run: nix develop -c cargo build --release --workspace

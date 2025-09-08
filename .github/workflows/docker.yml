@@ -1,0 +1,68 @@
+name: Nix Build & Docker
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  nix-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    - name: Build with Nix
+      run: |
+        # Build all packages defined in flake.nix
+        nix build .#felaas-oss
+        nix build .#guardianito-oss
+    
+    - name: Build Docker image with Nix
+      run: |
+        # Build Docker image using Nix (if dockerImage is defined in flake)
+        nix build .#dockerImage || echo "No dockerImage defined in flake"
+    
+    - name: Load Docker image
+      if: success()
+      run: |
+        # Load the Nix-built Docker image if it exists
+        if [ -f result ]; then
+          docker load < result
+        fi
+    
+    - name: Log in to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Push Docker image
+      if: github.event_name != 'pull_request'
+      run: |
+        # Tag and push the Nix-built image
+        IMAGE_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+        if [ -f result ]; then
+          IMAGE_ID=$(docker images --format "{{.ID}}" | head -n 1)
+          docker tag $IMAGE_ID $IMAGE_TAG
+          docker push $IMAGE_TAG
+        fi

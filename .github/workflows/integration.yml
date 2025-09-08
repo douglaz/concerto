@@ -1,0 +1,62 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: cargo-registry-integration-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-integration-${{ runner.os }}-
+    
+    - name: Install k3d
+      run: |
+        # k3d is included in our Nix environment
+        nix develop -c k3d version
+    
+    - name: Start k3d cluster
+      run: |
+        nix develop -c bash scripts/k3d-setup.sh
+      timeout-minutes: 10
+    
+    - name: Build integration test binary
+      run: |
+        nix develop -c cargo build --package felaas-oss-integration-tests
+    
+    - name: Run integration tests
+      run: |
+        nix develop -c cargo test --package felaas-oss-integration-tests -- --test-threads=1
+      timeout-minutes: 30
+      env:
+        RUST_LOG: debug
+        RUST_BACKTRACE: 1
+    
+    - name: Cleanup k3d cluster
+      if: always()
+      run: |
+        nix develop -c k3d cluster delete || true
