@@ -140,12 +140,15 @@ cargo run --bin felaas-oss -- launcher \
 ```bash
 cargo run --bin guardianito-oss -- daemon \
   --private-key "nsec1..." \
+  --owner-npub "npub1..." \
   --relays wss://relay.damus.io,wss://relay.nostr.info,wss://nos.lol \
   --pghost localhost \
   --pguser guardianito \
   --pgpassword secret \
   --felaas-url http://localhost:3001
 ```
+
+**Important**: The bot will only respond to commands from the specified owner (--owner-npub). All other users will receive a rejection message.
 
 ## Nostr Integration
 
@@ -262,6 +265,7 @@ INTERNAL_USER_ID=felaas-system
 #### Guardianito-OSS
 ```bash
 NOSTR_PRIVATE_KEY=nsec1...
+OWNER_NPUB=npub1...
 NOSTR_RELAYS=wss://relay.damus.io,wss://relay.nostr.info
 PGHOST=localhost
 PGUSER=guardianito

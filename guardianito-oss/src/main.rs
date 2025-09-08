@@ -26,6 +26,10 @@ enum Commands {
         #[arg(long, env = "NOSTR_PRIVATE_KEY")]
         private_key: String,
 
+        /// Owner's Nostr public key (npub or hex) - bot will only respond to this user
+        #[arg(long, env = "OWNER_NPUB")]
+        owner_npub: String,
+
         /// Storage path for bot state
         #[arg(long, default_value = "/tmp/guardianito-oss")]
         store_path: String,
@@ -122,13 +126,15 @@ async fn main() -> Result<()> {
         Commands::Daemon {
             relays,
             private_key,
+            owner_npub,
             ..
         } => {
             info!("Starting Guardianito-OSS daemon");
+            info!("Owner: {}", owner_npub);
             info!("Connecting to Nostr relays: {:?}", relays);
 
             // Create and start the Nostr bot
-            let bot = NostrBot::new(&private_key, relays).await?;
+            let bot = NostrBot::new(&private_key, &owner_npub, relays).await?;
 
             // Start listening for messages
             if let Err(e) = bot.start().await {

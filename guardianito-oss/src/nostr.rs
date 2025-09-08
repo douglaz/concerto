@@ -9,6 +9,7 @@ use tracing::{debug, error, info};
 pub struct NostrBot {
     client: Client,
     keys: Keys,
+    owner_pubkey: PublicKey,
     #[allow(dead_code)]
     relays: Vec<String>,
     state: Arc<RwLock<BotState>>,
@@ -109,11 +110,15 @@ pub enum NostrBotEvent {
 
 impl NostrBot {
     /// Create a new Nostr bot from a private key
-    pub async fn new(private_key: &str, relays: Vec<String>) -> Result<Self> {
+    pub async fn new(private_key: &str, owner_npub: &str, relays: Vec<String>) -> Result<Self> {
         // Parse the private key (supports both nsec and hex formats)
         let keys = Keys::parse(private_key)?;
+        
+        // Parse the owner's public key (supports both npub and hex formats)
+        let owner_pubkey = PublicKey::parse(owner_npub)?;
 
         info!("Bot npub: {}", keys.public_key().to_bech32()?);
+        info!("Owner npub: {}", owner_pubkey.to_bech32()?);
 
         // Create client
         let client = Client::new(keys.clone());
@@ -130,6 +135,7 @@ impl NostrBot {
         Ok(Self {
             client,
             keys,
+            owner_pubkey,
             relays,
             state: Arc::new(RwLock::new(BotState::default())),
         })
@@ -200,11 +206,27 @@ impl NostrBot {
 
     /// Handle direct messages
     async fn handle_dm(&self, event: Event) -> Result<()> {
-        // Decrypt the message
+        // CRITICAL: Check if sender is the owner
+        if event.pubkey != self.owner_pubkey {
+            info!(
+                "Ignoring DM from non-owner: {} (owner is {})",
+                event.pubkey.to_bech32()?,
+                self.owner_pubkey.to_bech32()?
+            );
+            // Send rejection message to non-owners
+            self.send_dm(
+                event.pubkey,
+                "This bot only responds to its owner.",
+            )
+            .await?;
+            return Ok(());
+        }
+
+        // Decrypt the message (only for the owner)
         let decrypted = nip04::decrypt(self.keys.secret_key(), &event.pubkey, &event.content)?;
 
         info!(
-            "Received DM from {}: {}",
+            "Received DM from owner {}: {}",
             event.pubkey.to_bech32()?,
             decrypted
         );
@@ -341,16 +363,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_bot_creation() -> Result<()> {
-        // Generate a test key
-        let keys = Keys::generate();
-        let private_key = keys.secret_key().to_bech32()?;
+        // Generate test keys
+        let bot_keys = Keys::generate();
+        let private_key = bot_keys.secret_key().to_bech32()?;
+        
+        let owner_keys = Keys::generate();
+        let owner_npub = owner_keys.public_key().to_bech32()?;
 
         // Use a test relay (you might want to use a mock in real tests)
         let relays = vec!["wss://relay.damus.io".to_string()];
 
         // This would normally connect to real relays, so we just test creation
         // In production tests, you'd want to use a mock relay
-        let _bot = NostrBot::new(&private_key, relays).await?;
+        let _bot = NostrBot::new(&private_key, &owner_npub, relays).await?;
 
         Ok(())
     }
