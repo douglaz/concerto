@@ -54,6 +54,7 @@
           docker-compose
           kubectl
           k9s
+          k3d
         ];
 
       in
