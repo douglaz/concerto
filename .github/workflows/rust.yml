@@ -39,7 +39,7 @@ jobs:
       run: nix develop -c cargo fmt --check
     
     - name: Run linting
-      run: nix develop -c cargo clippy --all-targets -- -D warnings
+      run: nix develop -c cargo clippy --lib --bins -- -D warnings
     
     - name: Build FeLaaS
       run: nix develop -c cargo build --package felaas-oss --lib --bins

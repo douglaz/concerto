@@ -179,7 +179,7 @@ pub async fn create_pg_pool(pg: &PgParams) -> anyhow::Result<PgPool> {
             .map_err(|e| anyhow::anyhow!("Invalid Postgres port: {e}"))?,
     );
     cfg.user = Some(pg.pguser.clone());
-    cfg.password = pg.pgpassword.as_ref().map(|s| s.clone());
+    cfg.password = pg.pgpassword.clone();
     cfg.dbname = Some(pg.pgdatabase.clone());
     let pool = cfg.create_pool(
         Some(deadpool_postgres::Runtime::Tokio1),
