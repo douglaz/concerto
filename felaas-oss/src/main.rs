@@ -1,7 +1,7 @@
 use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use felaas_oss::{
-    ApiArgs, PgParams, api, create_pg_pool, federation_launcher_daemon, guardian_launcher_tng,
+    ApiArgs, api, create_pg_pool, federation_launcher_daemon, guardian_launcher_tng,
     initialize_logging,
 };
 use secrecy::SecretString;
