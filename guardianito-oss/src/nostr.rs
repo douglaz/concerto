@@ -107,11 +107,7 @@ impl NostrBot {
     /// Create a new Nostr bot from a private key
     pub async fn new(private_key: &str, relays: Vec<String>) -> Result<Self> {
         // Parse the private key (supports both nsec and hex formats)
-        let keys = if private_key.starts_with("nsec") {
-            Keys::parse(private_key)?
-        } else {
-            Keys::parse(private_key)?
-        };
+        let keys = Keys::parse(private_key)?;
 
         info!("Bot npub: {}", keys.public_key().to_bech32()?);
 
@@ -201,7 +197,7 @@ impl NostrBot {
     /// Handle direct messages
     async fn handle_dm(&self, event: Event) -> Result<()> {
         // Decrypt the message
-        let decrypted = nip04::decrypt(&self.keys.secret_key(), &event.pubkey, &event.content)?;
+        let decrypted = nip04::decrypt(self.keys.secret_key(), &event.pubkey, &event.content)?;
 
         info!(
             "Received DM from {}: {}",
@@ -235,7 +231,7 @@ impl NostrBot {
         // Reply to the mention
         let tags = vec![Tag::event(event.id), Tag::public_key(event.pubkey)];
         let reply = EventBuilder::text_note(
-            format!("Hello! I'm a Fedimint guardian bot. DM me to get started."),
+            "Hello! I'm a Fedimint guardian bot. DM me to get started.".to_string(),
             tags,
         );
         let reply_event = self.client.sign_event_builder(reply).await?;
@@ -310,7 +306,7 @@ impl NostrBot {
 
     /// Send a direct message to a user
     async fn send_dm(&self, recipient: PublicKey, message: &str) -> Result<()> {
-        let encrypted = nip04::encrypt(&self.keys.secret_key(), &recipient, message)?;
+        let encrypted = nip04::encrypt(self.keys.secret_key(), &recipient, message)?;
 
         // Build encrypted direct message event (Kind 4)
         let event_builder = EventBuilder::new(
