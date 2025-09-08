@@ -9,6 +9,7 @@ use tracing::{debug, error, info};
 pub struct NostrBot {
     client: Client,
     keys: Keys,
+    #[allow(dead_code)]
     relays: Vec<String>,
     state: Arc<RwLock<BotState>>,
 }
@@ -21,6 +22,7 @@ struct BotState {
     active_federations: Vec<FederationSetup>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct ConversationInfo {
     user_pubkey: PublicKey,
