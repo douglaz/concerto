@@ -1,0 +1,34 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: felaas-test
+servers: 1
+agents: 4
+network: felaas-net
+image: rancher/k3s:v1.28.3-k3s1
+ports:
+  - port: 6443:6443
+    nodeFilters:
+      - server:*
+  - port: 28080:80
+    nodeFilters:
+      - loadbalancer
+  - port: 28443:443
+    nodeFilters:
+      - loadbalancer
+  - port: 15432:30432
+    nodeFilters:
+      - server:*
+      - agents:*
+options:
+  k3d:
+    wait: true
+    timeout: "60s"
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters:
+          - server:*
+  kubeconfig:
+    updateDefaultKubeconfig: false
+    switchCurrentContext: false
