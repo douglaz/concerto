@@ -1,6 +1,5 @@
 // Utilities for k3d-based integration testing
 
-use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::Duration;
@@ -9,9 +8,8 @@ use anyhow::{Context, Result};
 use felaas_oss::{PgParams, PgPool, create_pg_pool};
 use k8s_openapi::api::apps::v1::StatefulSet;
 use k8s_openapi::api::batch::v1::Job;
-use k8s_openapi::api::core::v1::{ConfigMap, Event, Namespace, Pod, Service};
+use k8s_openapi::api::core::v1::{ConfigMap, Namespace, Pod, Service};
 use k8s_openapi::api::rbac::v1::{ClusterRole, ClusterRoleBinding};
-use k8s_openapi::serde::Deserialize;
 use kube::api::{Api, DeleteParams, ListParams, PostParams};
 use kube::{Client, Config};
 use secrecy::{ExposeSecret, SecretString};
@@ -323,7 +321,7 @@ pub async fn install_nginx_ingress_controller(client: &Client) -> Result<()> {
     // Use kubectl to apply the manifest
     info!("Applying NGINX Ingress Controller manifest");
     let output = Command::new("kubectl")
-        .args(&["apply", "-f", manifest_url])
+        .args(["apply", "-f", manifest_url])
         .env(
             "KUBECONFIG",
             "/home/master/p/federation-tools-oss/k8s-config/kubeconfig.yaml",
@@ -424,7 +422,7 @@ pub async fn load_fedimint_images(fedimint_image: &str, ui_image: &str) -> Resul
     // Pull and load Fedimint guardian image
     info!("Pulling Fedimint guardian image: {}", fedimint_image);
     let output = Command::new("docker")
-        .args(&["pull", fedimint_image])
+        .args(["pull", fedimint_image])
         .output()?;
 
     if !output.status.success() {
@@ -436,7 +434,7 @@ pub async fn load_fedimint_images(fedimint_image: &str, ui_image: &str) -> Resul
 
     info!("Loading Fedimint guardian image into k3d");
     let output = Command::new("./bin/k3d")
-        .args(&["image", "import", fedimint_image, "-c", "felaas-test"])
+        .args(["image", "import", fedimint_image, "-c", "felaas-test"])
         .output()?;
 
     if !output.status.success() {
@@ -448,7 +446,7 @@ pub async fn load_fedimint_images(fedimint_image: &str, ui_image: &str) -> Resul
 
     // Pull and load Fedimint UI image
     info!("Pulling Fedimint UI image: {}", ui_image);
-    let output = Command::new("docker").args(&["pull", ui_image]).output()?;
+    let output = Command::new("docker").args(["pull", ui_image]).output()?;
 
     if !output.status.success() {
         anyhow::bail!(
@@ -459,7 +457,7 @@ pub async fn load_fedimint_images(fedimint_image: &str, ui_image: &str) -> Resul
 
     info!("Loading Fedimint UI image into k3d");
     let output = Command::new("./bin/k3d")
-        .args(&["image", "import", ui_image, "-c", "felaas-test"])
+        .args(["image", "import", ui_image, "-c", "felaas-test"])
         .output()?;
 
     if !output.status.success() {
@@ -483,7 +481,7 @@ pub async fn build_and_load_daemon_image(prebuilt_tag: Option<String>) -> Result
     // Build the Docker image
     info!("Building felaas-oss daemon Docker image");
     let output = Command::new("docker")
-        .args(&["build", "-t", "felaas-oss:test", "-f", "Dockerfile", "."])
+        .args(["build", "-t", "felaas-oss:test", "-f", "Dockerfile", "."])
         .current_dir("/home/master/p/federation-tools-oss")
         .output()?;
 
@@ -497,7 +495,7 @@ pub async fn build_and_load_daemon_image(prebuilt_tag: Option<String>) -> Result
     // Load image into k3d cluster
     info!("Loading image into k3d cluster");
     let output = Command::new("./bin/k3d")
-        .args(&["image", "import", "felaas-oss:test", "-c", "felaas-test"])
+        .args(["image", "import", "felaas-oss:test", "-c", "felaas-test"])
         .current_dir("/home/master/p/federation-tools-oss")
         .output()?;
 
@@ -627,7 +625,7 @@ pub async fn deploy_daemon_job(
                             "--pghost", "postgres.default.svc.cluster.local",
                             "--pgport", "5432",
                             "--pguser", &pg_params.pguser,
-                            "--pgpassword", pg_params.pgpassword.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                            "--pgpassword", pg_params.pgpassword.as_deref().unwrap_or(""),
                             "--pgdatabase", &pg_params.pgdatabase,
                             "--pgschema", &pg_params.pgschema,
                             "--fedimint-external-domain", &env_conf.fedimint_external_domain,

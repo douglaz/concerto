@@ -187,6 +187,7 @@ async fn verify_federation_resources(
 }
 
 /// Verify federation endpoints were set in database
+#[allow(dead_code)]
 async fn verify_federation_endpoints(
     db: &FederationLauncherDB,
     launch_id: &FederationLaunchId,
