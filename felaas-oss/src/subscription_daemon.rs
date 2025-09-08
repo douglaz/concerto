@@ -1,16 +1,16 @@
 use std::time::Duration;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use tokio::time;
 use tracing::{debug, error, info};
 
+use crate::PgPool;
 use crate::common::{ChatUserId, SubscriptionStatus};
 use crate::launch::subscription::{
     Subscription, SubscriptionCancellationReason, SubscriptionPayment, SubscriptionPaymentError,
     SubscriptionPaymentId, SubscriptionPaymentStatus,
 };
 use crate::wallet::core::{FelaasWallet, FelaasWalletError};
-use crate::PgPool;
 
 /// Main daemon loop that processes subscriptions and handles payments
 /*
@@ -113,30 +113,28 @@ async fn process_subscription_payment(
             match receiver_result {
                 Ok(()) => {
                     // Payment successful on both sides, update subscription and payment status
-                    let subscription =
-                        crate::launch::subscription::db::update_subscription_status(
-                            schema,
-                            &tx,
-                            user_id,
-                            SubscriptionStatus::PendingInitialActivation,
-                            SubscriptionStatus::Active,
-                            None,
-                        )
-                        .await
-                        .context("Failed to update subscription status to active")?;
+                    let subscription = crate::launch::subscription::db::update_subscription_status(
+                        schema,
+                        &tx,
+                        user_id,
+                        SubscriptionStatus::PendingInitialActivation,
+                        SubscriptionStatus::Active,
+                        None,
+                    )
+                    .await
+                    .context("Failed to update subscription status to active")?;
 
-                    let payment =
-                        crate::launch::subscription::db::update_subscription_payment(
-                            schema,
-                            &tx,
-                            payment_id,
-                            Some(&sender_result.preimage),
-                            None, // No failure reason
-                            SubscriptionPaymentStatus::Pending,
-                            SubscriptionPaymentStatus::Successful,
-                        )
-                        .await
-                        .context("Failed to update payment status to successful")?;
+                    let payment = crate::launch::subscription::db::update_subscription_payment(
+                        schema,
+                        &tx,
+                        payment_id,
+                        Some(&sender_result.preimage),
+                        None, // No failure reason
+                        SubscriptionPaymentStatus::Pending,
+                        SubscriptionPaymentStatus::Successful,
+                    )
+                    .await
+                    .context("Failed to update payment status to successful")?;
                     // Commit subscription tx first. In the worst case subscription will be active
                     // with a pending payment that in fact was paid
                     tx.commit().await?;
@@ -241,9 +239,7 @@ mod tests {
     use crate::common::ChatUserId;
     use crate::initialize_logging;
     use crate::launch::subscription::db::SubscriptionDB;
-    use crate::launch::subscription::{
-        InsufficientBalanceDetails, SubscriptionPaymentError,
-    };
+    use crate::launch::subscription::{InsufficientBalanceDetails, SubscriptionPaymentError};
     use crate::wallet::core::{InvoiceCreatedDetails, InvoicePaidDetails};
 
     async fn create_test_pool(pgschema: String) -> Result<PgPool> {

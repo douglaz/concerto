@@ -6,7 +6,7 @@ use std::process::Command;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use felaas_oss::{create_pg_pool, PgParams, PgPool};
+use felaas_oss::{PgParams, PgPool, create_pg_pool};
 use k8s_openapi::api::apps::v1::StatefulSet;
 use k8s_openapi::api::batch::v1::Job;
 use k8s_openapi::api::core::v1::{ConfigMap, Event, Namespace, Pod, Service};
@@ -33,7 +33,9 @@ pub async fn connect_to_k8s(kubeconfig_path: Option<&str>) -> Result<Client> {
     let kubeconfig_path = match kubeconfig_path {
         Some(path) => PathBuf::from(path),
         None => {
-            anyhow::bail!("kubeconfig path is required. Please provide --kubeconfig parameter or set KUBECONFIG environment variable")
+            anyhow::bail!(
+                "kubeconfig path is required. Please provide --kubeconfig parameter or set KUBECONFIG environment variable"
+            )
         }
     };
 
@@ -99,14 +101,10 @@ pub async fn connect_to_postgres(params: &PgParams) -> Result<PgPool> {
 }
 
 /// Create a test namespace and return its name
-pub async fn create_test_namespace(
-    client: &Client,
-    prefix: &str,
-    uuid: Uuid,
-) -> Result<String> {
+pub async fn create_test_namespace(client: &Client, prefix: &str, uuid: Uuid) -> Result<String> {
     let namespace_name = format!("{}-{}", prefix, uuid);
     let namespaces: Api<Namespace> = Api::all(client.clone());
-    
+
     let namespace = serde_json::from_value(serde_json::json!({
         "apiVersion": "v1",
         "kind": "Namespace",
@@ -118,8 +116,10 @@ pub async fn create_test_namespace(
             }
         }
     }))?;
-    
-    namespaces.create(&PostParams::default(), &namespace).await?;
+
+    namespaces
+        .create(&PostParams::default(), &namespace)
+        .await?;
     info!(%namespace_name, "Created test namespace");
     Ok(namespace_name)
 }
@@ -127,8 +127,11 @@ pub async fn create_test_namespace(
 /// Clean up a test namespace
 pub async fn cleanup_namespace(client: &Client, namespace_name: &str) -> Result<()> {
     let namespaces: Api<Namespace> = Api::all(client.clone());
-    
-    match namespaces.delete(namespace_name, &DeleteParams::default()).await {
+
+    match namespaces
+        .delete(namespace_name, &DeleteParams::default())
+        .await
+    {
         Ok(_) => {
             info!(%namespace_name, "Deleted test namespace");
             Ok(())
@@ -146,10 +149,10 @@ pub async fn label_nodes_with_zone(client: &Client, zone: &str) -> Result<()> {
     use k8s_openapi::api::core::v1::Node;
     use kube::api::Patch;
     use kube::api::PatchParams;
-    
+
     let nodes: Api<Node> = Api::all(client.clone());
     let node_list = nodes.list(&Default::default()).await?;
-    
+
     for node in node_list {
         if let Some(name) = node.metadata.name {
             if name.contains("agent") {
@@ -160,13 +163,15 @@ pub async fn label_nodes_with_zone(client: &Client, zone: &str) -> Result<()> {
                         }
                     }
                 });
-                
-                nodes.patch(&name, &PatchParams::default(), &Patch::Merge(patch)).await?;
+
+                nodes
+                    .patch(&name, &PatchParams::default(), &Patch::Merge(patch))
+                    .await?;
                 debug!(%name, %zone, "Labeled node with availability zone");
             }
         }
     }
-    
+
     info!(%zone, "Labeled all agent nodes with availability zone");
     Ok(())
 }
@@ -174,9 +179,9 @@ pub async fn label_nodes_with_zone(client: &Client, zone: &str) -> Result<()> {
 /// Create storage classes needed for testing
 pub async fn create_storage_classes(client: &Client) -> Result<()> {
     use k8s_openapi::api::storage::v1::StorageClass;
-    
+
     let storage_classes: Api<StorageClass> = Api::all(client.clone());
-    
+
     // Create test-az-ebs-sc if it doesn't exist
     match storage_classes.get("test-az-ebs-sc").await {
         Ok(_) => {
@@ -193,20 +198,20 @@ pub async fn create_storage_classes(client: &Client) -> Result<()> {
                 "reclaimPolicy": "Delete",
                 "volumeBindingMode": "WaitForFirstConsumer"
             }))?;
-            
+
             storage_classes.create(&PostParams::default(), &sc).await?;
             info!("Created storage class test-az-ebs-sc");
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     Ok(())
 }
 
 /// Deploy PostgreSQL if not already running
 pub async fn deploy_postgres_if_needed(client: &Client) -> Result<()> {
     let statefulsets: Api<StatefulSet> = Api::namespaced(client.clone(), "default");
-    
+
     // Check if PostgreSQL is already deployed
     match statefulsets.get("postgres").await {
         Ok(_) => {
@@ -218,16 +223,17 @@ pub async fn deploy_postgres_if_needed(client: &Client) -> Result<()> {
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Deploy PostgreSQL
     let postgres_manifest = include_str!("../k8s_manifests/postgres.yaml");
     let postgres_resources: Vec<serde_yaml::Value> = serde_yaml::from_str(postgres_manifest)?;
-    
+
     for resource in postgres_resources {
-        let kind = resource.get("kind")
+        let kind = resource
+            .get("kind")
             .and_then(|k| k.as_str())
             .ok_or_else(|| anyhow::anyhow!("Resource missing kind"))?;
-        
+
         match kind {
             "Service" => {
                 let services: Api<Service> = Api::namespaced(client.clone(), "default");
@@ -236,14 +242,16 @@ pub async fn deploy_postgres_if_needed(client: &Client) -> Result<()> {
             }
             "StatefulSet" => {
                 let statefulset: StatefulSet = serde_yaml::from_value(resource)?;
-                statefulsets.create(&PostParams::default(), &statefulset).await?;
+                statefulsets
+                    .create(&PostParams::default(), &statefulset)
+                    .await?;
             }
             _ => {
                 warn!(%kind, "Unknown resource kind in PostgreSQL manifest");
             }
         }
     }
-    
+
     info!("Deployed PostgreSQL StatefulSet");
     Ok(())
 }
@@ -253,17 +261,19 @@ pub async fn wait_for_postgres(client: &Client) -> Result<()> {
     let pods: Api<Pod> = Api::namespaced(client.clone(), "default");
     let timeout = Duration::from_secs(120);
     let start = std::time::Instant::now();
-    
+
     loop {
-        let pod_list = pods.list(&ListParams::default().labels("app=postgres")).await?;
-        
+        let pod_list = pods
+            .list(&ListParams::default().labels("app=postgres"))
+            .await?;
+
         if let Some(pod) = pod_list.items.first() {
             if let Some(status) = &pod.status {
                 if let Some(conditions) = &status.conditions {
-                    let ready = conditions.iter().any(|c| {
-                        c.type_ == "Ready" && c.status == "True"
-                    });
-                    
+                    let ready = conditions
+                        .iter()
+                        .any(|c| c.type_ == "Ready" && c.status == "True");
+
                     if ready {
                         info!("PostgreSQL pod is ready");
                         return Ok(());
@@ -271,11 +281,11 @@ pub async fn wait_for_postgres(client: &Client) -> Result<()> {
                 }
             }
         }
-        
+
         if start.elapsed() > timeout {
             anyhow::bail!("Timeout waiting for PostgreSQL to be ready");
         }
-        
+
         time::sleep(Duration::from_secs(2)).await;
     }
 }
@@ -283,7 +293,7 @@ pub async fn wait_for_postgres(client: &Client) -> Result<()> {
 /// Install NGINX Ingress Controller
 pub async fn install_nginx_ingress_controller(client: &Client) -> Result<()> {
     use k8s_openapi::api::apps::v1::Deployment;
-    
+
     // Check if already installed
     let namespaces: Api<Namespace> = Api::all(client.clone());
     match namespaces.get("ingress-nginx").await {
@@ -305,26 +315,32 @@ pub async fn install_nginx_ingress_controller(client: &Client) -> Result<()> {
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Apply the nginx ingress controller manifest
     // Using the same version as the reference project
     let manifest_url = "https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml";
-    
+
     // Use kubectl to apply the manifest
     info!("Applying NGINX Ingress Controller manifest");
     let output = Command::new("kubectl")
         .args(&["apply", "-f", manifest_url])
-        .env("KUBECONFIG", "/home/master/p/federation-tools-oss/k8s-config/kubeconfig.yaml")
+        .env(
+            "KUBECONFIG",
+            "/home/master/p/federation-tools-oss/k8s-config/kubeconfig.yaml",
+        )
         .output()?;
-    
+
     if !output.status.success() {
-        anyhow::bail!("Failed to install NGINX Ingress Controller: {}", String::from_utf8_lossy(&output.stderr));
+        anyhow::bail!(
+            "Failed to install NGINX Ingress Controller: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     // Wait for the controller to be ready
     info!("Waiting for NGINX Ingress Controller to be ready...");
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-    
+
     info!("NGINX Ingress Controller installed successfully");
     Ok(())
 }
@@ -332,7 +348,7 @@ pub async fn install_nginx_ingress_controller(client: &Client) -> Result<()> {
 /// Configure CoreDNS for internal domains
 pub async fn configure_coredns(client: &Client, _kubeconfig_path: Option<&str>) -> Result<()> {
     let configmaps: Api<ConfigMap> = Api::namespaced(client.clone(), "kube-system");
-    
+
     // Check if CoreDNS is already configured
     match configmaps.get("coredns-custom").await {
         Ok(_) => {
@@ -344,12 +360,14 @@ pub async fn configure_coredns(client: &Client, _kubeconfig_path: Option<&str>) 
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Create custom CoreDNS configuration
     let coredns_config = include_str!("../k8s_manifests/coredns-config.yaml");
     let configmap: ConfigMap = serde_yaml::from_str(coredns_config)?;
-    configmaps.create(&PostParams::default(), &configmap).await?;
-    
+    configmaps
+        .create(&PostParams::default(), &configmap)
+        .await?;
+
     info!("Created CoreDNS custom configuration");
     Ok(())
 }
@@ -368,16 +386,17 @@ pub async fn deploy_daemon_rbac(client: &Client) -> Result<()> {
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Create RBAC resources
     let rbac_manifest = include_str!("../k8s_manifests/daemon-rbac.yaml");
     let rbac_resources: Vec<serde_yaml::Value> = serde_yaml::from_str(rbac_manifest)?;
-    
+
     for resource in rbac_resources {
-        let kind = resource.get("kind")
+        let kind = resource
+            .get("kind")
             .and_then(|k| k.as_str())
             .ok_or_else(|| anyhow::anyhow!("Resource missing kind"))?;
-        
+
         match kind {
             "ClusterRole" => {
                 let role: ClusterRole = serde_yaml::from_value(resource)?;
@@ -393,7 +412,7 @@ pub async fn deploy_daemon_rbac(client: &Client) -> Result<()> {
             }
         }
     }
-    
+
     info!("Created daemon RBAC resources");
     Ok(())
 }
@@ -401,45 +420,55 @@ pub async fn deploy_daemon_rbac(client: &Client) -> Result<()> {
 /// Load Fedimint images into k3d
 pub async fn load_fedimint_images(fedimint_image: &str, ui_image: &str) -> Result<()> {
     info!("Loading Fedimint images into k3d cluster");
-    
+
     // Pull and load Fedimint guardian image
     info!("Pulling Fedimint guardian image: {}", fedimint_image);
     let output = Command::new("docker")
         .args(&["pull", fedimint_image])
         .output()?;
-    
+
     if !output.status.success() {
-        anyhow::bail!("Failed to pull Fedimint image: {}", String::from_utf8_lossy(&output.stderr));
+        anyhow::bail!(
+            "Failed to pull Fedimint image: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     info!("Loading Fedimint guardian image into k3d");
     let output = Command::new("./bin/k3d")
         .args(&["image", "import", fedimint_image, "-c", "felaas-test"])
         .output()?;
-    
+
     if !output.status.success() {
-        warn!("Failed to load Fedimint image into k3d (may already be loaded): {}", String::from_utf8_lossy(&output.stderr));
+        warn!(
+            "Failed to load Fedimint image into k3d (may already be loaded): {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     // Pull and load Fedimint UI image
     info!("Pulling Fedimint UI image: {}", ui_image);
-    let output = Command::new("docker")
-        .args(&["pull", ui_image])
-        .output()?;
-    
+    let output = Command::new("docker").args(&["pull", ui_image]).output()?;
+
     if !output.status.success() {
-        anyhow::bail!("Failed to pull Fedimint UI image: {}", String::from_utf8_lossy(&output.stderr));
+        anyhow::bail!(
+            "Failed to pull Fedimint UI image: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     info!("Loading Fedimint UI image into k3d");
     let output = Command::new("./bin/k3d")
         .args(&["image", "import", ui_image, "-c", "felaas-test"])
         .output()?;
-    
+
     if !output.status.success() {
-        warn!("Failed to load Fedimint UI image into k3d (may already be loaded): {}", String::from_utf8_lossy(&output.stderr));
+        warn!(
+            "Failed to load Fedimint UI image into k3d (may already be loaded): {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     info!("Fedimint images loaded successfully");
     Ok(())
 }
@@ -450,29 +479,35 @@ pub async fn build_and_load_daemon_image(prebuilt_tag: Option<String>) -> Result
         info!(%tag, "Using pre-built daemon image");
         return Ok(tag);
     }
-    
+
     // Build the Docker image
     info!("Building felaas-oss daemon Docker image");
     let output = Command::new("docker")
         .args(&["build", "-t", "felaas-oss:test", "-f", "Dockerfile", "."])
         .current_dir("/home/master/p/federation-tools-oss")
         .output()?;
-    
+
     if !output.status.success() {
-        anyhow::bail!("Failed to build Docker image: {}", String::from_utf8_lossy(&output.stderr));
+        anyhow::bail!(
+            "Failed to build Docker image: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     // Load image into k3d cluster
     info!("Loading image into k3d cluster");
     let output = Command::new("./bin/k3d")
         .args(&["image", "import", "felaas-oss:test", "-c", "felaas-test"])
         .current_dir("/home/master/p/federation-tools-oss")
         .output()?;
-    
+
     if !output.status.success() {
-        anyhow::bail!("Failed to load image into k3d: {}", String::from_utf8_lossy(&output.stderr));
+        anyhow::bail!(
+            "Failed to load image into k3d: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
-    
+
     info!("Successfully built and loaded daemon image");
     Ok("felaas-oss:test".to_string())
 }
@@ -480,9 +515,9 @@ pub async fn build_and_load_daemon_image(prebuilt_tag: Option<String>) -> Result
 /// Create ServiceAccount in namespace if it doesn't exist
 async fn ensure_service_account(client: &Client, namespace: &str) -> Result<()> {
     use k8s_openapi::api::core::v1::ServiceAccount;
-    
+
     let service_accounts: Api<ServiceAccount> = Api::namespaced(client.clone(), namespace);
-    
+
     // Check if ServiceAccount already exists
     match service_accounts.get("felaas-daemon").await {
         Ok(_) => {
@@ -494,7 +529,7 @@ async fn ensure_service_account(client: &Client, namespace: &str) -> Result<()> 
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Create ServiceAccount
     let sa = serde_json::from_value(serde_json::json!({
         "apiVersion": "v1",
@@ -504,7 +539,7 @@ async fn ensure_service_account(client: &Client, namespace: &str) -> Result<()> 
             "namespace": namespace,
         }
     }))?;
-    
+
     service_accounts.create(&PostParams::default(), &sa).await?;
     info!(%namespace, "Created ServiceAccount felaas-daemon");
     Ok(())
@@ -513,10 +548,10 @@ async fn ensure_service_account(client: &Client, namespace: &str) -> Result<()> 
 /// Create ClusterRoleBinding for the namespace's ServiceAccount
 async fn create_namespace_clusterrolebinding(client: &Client, namespace: &str) -> Result<()> {
     use k8s_openapi::api::rbac::v1::ClusterRoleBinding;
-    
+
     let bindings: Api<ClusterRoleBinding> = Api::all(client.clone());
     let binding_name = format!("felaas-daemon-{}", namespace);
-    
+
     // Check if already exists
     match bindings.get(&binding_name).await {
         Ok(_) => {
@@ -528,7 +563,7 @@ async fn create_namespace_clusterrolebinding(client: &Client, namespace: &str) -
         }
         Err(e) => return Err(e.into()),
     }
-    
+
     // Create ClusterRoleBinding for this namespace's ServiceAccount
     let binding = serde_json::from_value(serde_json::json!({
         "apiVersion": "rbac.authorization.k8s.io/v1",
@@ -547,7 +582,7 @@ async fn create_namespace_clusterrolebinding(client: &Client, namespace: &str) -
             "namespace": namespace,
         }]
     }))?;
-    
+
     bindings.create(&PostParams::default(), &binding).await?;
     info!(%namespace, %binding_name, "Created ClusterRoleBinding for namespace");
     Ok(())
@@ -563,13 +598,13 @@ pub async fn deploy_daemon_job(
 ) -> Result<String> {
     // Ensure ServiceAccount exists in the namespace
     ensure_service_account(client, namespace).await?;
-    
+
     // Create ClusterRoleBinding for this namespace's ServiceAccount
     create_namespace_clusterrolebinding(client, namespace).await?;
-    
+
     let jobs: Api<Job> = Api::namespaced(client.clone(), namespace);
     let job_name = format!("felaas-daemon-{}", Uuid::new_v4());
-    
+
     let job_manifest = serde_json::json!({
         "apiVersion": "batch/v1",
         "kind": "Job",
@@ -612,10 +647,10 @@ pub async fn deploy_daemon_job(
             }
         }
     });
-    
+
     let job: Job = serde_json::from_value(job_manifest)?;
     jobs.create(&PostParams::default(), &job).await?;
-    
+
     info!(%job_name, %namespace, "Deployed daemon job");
     Ok(job_name)
 }
@@ -629,10 +664,12 @@ pub async fn wait_for_daemon_running(
 ) -> Result<()> {
     let pods: Api<Pod> = Api::namespaced(client.clone(), namespace);
     let start = std::time::Instant::now();
-    
+
     loop {
-        let pod_list = pods.list(&ListParams::default().labels(&format!("job-name={}", job_name))).await?;
-        
+        let pod_list = pods
+            .list(&ListParams::default().labels(&format!("job-name={}", job_name)))
+            .await?;
+
         if let Some(pod) = pod_list.items.first() {
             if let Some(status) = &pod.status {
                 if let Some(phase) = &status.phase {
@@ -646,11 +683,11 @@ pub async fn wait_for_daemon_running(
                 }
             }
         }
-        
+
         if start.elapsed() > timeout {
             anyhow::bail!("Timeout waiting for daemon to be ready");
         }
-        
+
         time::sleep(Duration::from_secs(2)).await;
     }
 }

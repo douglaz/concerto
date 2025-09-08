@@ -1,8 +1,8 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use felaas_oss::{
-    api, create_pg_pool, federation_launcher_daemon, guardian_launcher_tng, initialize_logging,
-    ApiArgs, PgParams,
+    ApiArgs, PgParams, api, create_pg_pool, federation_launcher_daemon, guardian_launcher_tng,
+    initialize_logging,
 };
 use secrecy::SecretString;
 use tracing::info;
@@ -21,15 +21,14 @@ struct Opts {
 enum CliCommand {
     #[command(about = "Run the FeLaaS API server")]
     Api(ApiArgs),
-    
+
     #[command(about = "Launch Fedimint guardians on Kubernetes")]
     Launcher(guardian_launcher_tng::GuardianLauncherCmd),
-    
+
     #[command(
         about = "Run the federation launcher daemon that monitors and provisions federations"
     )]
     FederationLauncherDaemon(federation_launcher_daemon::FederationLauncherDaemonArgs),
-    
 }
 
 #[derive(Debug, Clone)]

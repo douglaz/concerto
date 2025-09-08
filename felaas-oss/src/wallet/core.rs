@@ -2,7 +2,7 @@ use std::num::NonZero;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use fedimint_client::{ClientHandleArc, OperationId};
 use fedimint_core::invite_code::InviteCode;
 use fedimint_ln_client::{InternalPayState, LnPayState, LnReceiveState, PayType};
@@ -256,7 +256,7 @@ impl FelaasWallet {
                             error,
                         } => return Err(anyhow!("RefundError: {error_message} {error}").into()),
                         InternalPayState::FundingFailed { error } => {
-                            return Err(anyhow!("FundingFailed: {error}").into())
+                            return Err(anyhow!("FundingFailed: {error}").into());
                         }
                     }
                     debug!(%invoice, %user_id, ?update, "Wait for ln payment state update");

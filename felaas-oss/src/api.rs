@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use axum::routing::get;
 use axum::Router;
+use axum::routing::get;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::info;
@@ -32,9 +32,7 @@ pub async fn run_api(args: ApiArgs) -> Result<()> {
         pool.clone(),
         args.pg.pgschema.clone(),
     );
-    subscription_db
-        .create_table_if_not_exists()
-        .await?;
+    subscription_db.create_table_if_not_exists().await?;
     let launcher_db = FederationLauncherDB::new(pool.clone(), args.pg.pgschema.clone());
     launcher_db.create_table_if_not_exists().await?;
     let og_registry_db = OgRegistryDB::new(pool.clone(), args.pg.pgschema.clone());

@@ -8,7 +8,9 @@ use crate::common::ChatUserId;
 #[derive(Debug, Error)]
 pub enum OgRegistryError {
     /// Another OG with the same reference_user_id is already active
-    #[error("Another OG with reference_user_id {reference_user_id} is already active (existing user_id: {existing_user_id})")]
+    #[error(
+        "Another OG with reference_user_id {reference_user_id} is already active (existing user_id: {existing_user_id})"
+    )]
     DuplicateActiveOg {
         reference_user_id: ChatUserId,
         existing_user_id: ChatUserId,

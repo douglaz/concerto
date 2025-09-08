@@ -1,4 +1,4 @@
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 use chrono::{DateTime, Utc};
 use fedimint_core::invite_code::InviteCode;
 use postgres_from_row::FromRow;

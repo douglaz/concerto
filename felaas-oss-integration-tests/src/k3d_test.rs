@@ -2,7 +2,7 @@
 
 use std::time::{Duration, Instant};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use felaas_oss::guardian_launcher_tng::naming;
 use felaas_oss::launch::configuration::db::FederationLauncherDB;
 use felaas_oss::launch::configuration::{
@@ -256,7 +256,10 @@ pub async fn test_federation_deployment_with_k3d(
     populate_og_registry(&pg_pool, &test_schema, num_ogs as usize + 2).await?; // Add extra OGs to test selection
 
     // Create a test federation without preset OGs
-    let federation_name = format!("fed-{}", uuid.to_string().chars().take(8).collect::<String>());
+    let federation_name = format!(
+        "fed-{}",
+        uuid.to_string().chars().take(8).collect::<String>()
+    );
     let num_fedimints = 1;
     let launch_id = create_test_federation(
         &pg_pool,
@@ -272,7 +275,7 @@ pub async fn test_federation_deployment_with_k3d(
     // Deploy the daemon to process the federation
     let mut pg_params_with_schema = pg_params.clone();
     pg_params_with_schema.pgschema = test_schema.clone();
-    
+
     let job_name = deploy_daemon_job(
         kube_client,
         &test_namespace,
@@ -360,7 +363,7 @@ pub async fn test_multiple_federations_processing(
         )
         .await?;
         launch_ids.push(launch_id);
-        
+
         // Small delay to ensure different timestamps
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
@@ -370,7 +373,7 @@ pub async fn test_multiple_federations_processing(
     // Deploy the daemon
     let mut pg_params_with_schema = pg_params.clone();
     pg_params_with_schema.pgschema = test_schema.clone();
-    
+
     let job_name = deploy_daemon_job(
         kube_client,
         &test_namespace,
@@ -390,7 +393,7 @@ pub async fn test_multiple_federations_processing(
 
     // Verify all federations are processed in FIFO order
     let db = FederationLauncherDB::new(pg_pool.clone(), test_schema.clone());
-    
+
     for (i, launch_id) in launch_ids.iter().enumerate() {
         let config = wait_for_federation_status(
             &db,
@@ -399,21 +402,14 @@ pub async fn test_multiple_federations_processing(
             Duration::from_secs(60),
         )
         .await?;
-        
+
         info!(federation_index = %i, ?launch_id, "Federation {} reached InProgress - infrastructure deployed", i);
-        
+
         // Wait a bit for all pods to be created
         tokio::time::sleep(Duration::from_secs(20)).await;
-        
+
         // Verify resources were created
-        verify_federation_resources(
-            kube_client,
-            &config.name,
-            &config.created_at,
-            1,
-            2,
-        )
-        .await?;
+        verify_federation_resources(kube_client, &config.name, &config.created_at, 1, 2).await?;
     }
 
     // Cleanup
@@ -444,7 +440,10 @@ pub async fn test_federation_status_transitions(
     populate_og_registry(&pg_pool, &test_schema, 5).await?;
 
     // Create a test federation
-    let federation_name = format!("status-fed-{}", uuid.to_string().chars().take(8).collect::<String>());
+    let federation_name = format!(
+        "status-fed-{}",
+        uuid.to_string().chars().take(8).collect::<String>()
+    );
     let launch_id = create_test_federation(
         &pg_pool,
         &test_schema,
@@ -459,7 +458,7 @@ pub async fn test_federation_status_transitions(
     // Deploy the daemon
     let mut pg_params_with_schema = pg_params.clone();
     pg_params_with_schema.pgschema = test_schema.clone();
-    
+
     let job_name = deploy_daemon_job(
         kube_client,
         &test_namespace,
@@ -479,7 +478,7 @@ pub async fn test_federation_status_transitions(
 
     // Track status transitions
     let db = FederationLauncherDB::new(pg_pool.clone(), test_schema.clone());
-    
+
     // Should transition from Requested -> InProgress quickly
     let _config = wait_for_federation_status(
         &db,
@@ -488,16 +487,18 @@ pub async fn test_federation_status_transitions(
         Duration::from_secs(30),
     )
     .await?;
-    
+
     info!("Federation transitioned to InProgress");
 
     // Wait a bit for infrastructure to be fully deployed
     tokio::time::sleep(Duration::from_secs(30)).await;
-    
+
     // Get current federation config (will still be InProgress as DKG not completed)
-    let config = db.get_federation_launch_configuration(&launch_id).await?
+    let config = db
+        .get_federation_launch_configuration(&launch_id)
+        .await?
         .ok_or_else(|| anyhow::anyhow!("Federation config not found"))?;
-    
+
     info!("Federation infrastructure deployed, skipping DKG wait");
 
     // Skip guardian endpoint verification as they won't be set until DKG completes

@@ -1,4 +1,4 @@
 pub mod nostr;
 
 // Re-export main types
-pub use nostr::{NostrBot, GuardianRole};
+pub use nostr::{GuardianRole, NostrBot};

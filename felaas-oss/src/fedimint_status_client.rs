@@ -49,14 +49,18 @@ pub(crate) enum GuardianStatusError {
     #[error("HTTP sanity check failed for {endpoint}: {details}")]
     HttpSanityCheckFailed { endpoint: String, details: String },
 
-    #[error("Guardian verification timeout after {elapsed_secs} seconds for guardian {index} at {endpoint}")]
+    #[error(
+        "Guardian verification timeout after {elapsed_secs} seconds for guardian {index} at {endpoint}"
+    )]
     VerificationTimeout {
         index: usize,
         endpoint: String,
         elapsed_secs: u64,
     },
 
-    #[error("Guardian verification failed after {max_retries} retries for guardian {index} at {endpoint}")]
+    #[error(
+        "Guardian verification failed after {max_retries} retries for guardian {index} at {endpoint}"
+    )]
     MaxRetriesExceeded {
         index: usize,
         endpoint: String,

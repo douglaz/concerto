@@ -23,16 +23,15 @@ pub type PgClient = deadpool_postgres::Object;
 
 // Re-exports for convenience
 pub use amount::Amount;
-pub use common::{create_pg_pool, ChatUserId, SubscriptionStatus};
+pub use common::{ChatUserId, SubscriptionStatus, create_pg_pool};
 
 // Initialize logging
 pub fn initialize_logging() {
     use tracing_subscriber::prelude::*;
-    
+
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into())
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();

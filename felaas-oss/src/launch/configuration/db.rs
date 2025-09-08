@@ -4,13 +4,13 @@ use postgres_from_row::FromRow;
 use postgres_types::ToSql;
 use tracing::{debug, error, info, warn};
 
+use crate::PgPool;
 use crate::common::{ChatUserId, Endpoint, SubscriptionStatus};
 use crate::launch::configuration::{
     FederationLaunchConfiguration, FederationLaunchConfigurationRow, FederationLaunchError,
     FederationLaunchId, FederationLaunchLiquidity, FederationLaunchLiquidityStatus,
     FederationLaunchStatus, InviteCodeSql,
-};
-use crate::PgPool; // ensure this matches your project dependencies
+}; // ensure this matches your project dependencies
 
 const FEDERATION_LAUNCH_CONFIGURATION: &str = "federation_launch_configuration";
 
@@ -116,11 +116,10 @@ impl FederationLauncherDB {
 
         // We suppose get_current_subscription will lock the user so we don't have
         // concurrency issues here
-        let subscription = crate::launch::subscription::db::get_current_subscription(
-            schema, &tx, &user_id,
-        )
-        .await
-        .map_err(|e| FederationLaunchError::Other(e.into()))?;
+        let subscription =
+            crate::launch::subscription::db::get_current_subscription(schema, &tx, &user_id)
+                .await
+                .map_err(|e| FederationLaunchError::Other(e.into()))?;
 
         let subscription = match subscription {
             Some(subscription) => subscription,
@@ -1021,12 +1020,12 @@ mod tests {
 
     use super::*;
     use crate::common::mock_random_invoice;
-    use crate::launch::fiat_subscription::db::{create_test_exchange_rates, FiatSubscriptionDB};
+    use crate::launch::fiat_subscription::db::{FiatSubscriptionDB, create_test_exchange_rates};
     use crate::launch::subscription::db::SubscriptionDB;
     use crate::wallet::core::FelaasWallet;
     use crate::{
-        fiat_daemon, initialize_logging, standard_daemon, PGDATABASE, PGHOST, PGPASSWORD, PGPORT,
-        PGUSER,
+        PGDATABASE, PGHOST, PGPASSWORD, PGPORT, PGUSER, fiat_daemon, initialize_logging,
+        standard_daemon,
     };
 
     // Helper to create a test database pool
@@ -1279,8 +1278,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_too_much_fedimints_different_launches_subscription() -> Result<()>
-    {
+    async fn test_create_too_much_fedimints_different_launches_subscription() -> Result<()> {
         let schema = format!("schema_{id}", id = uuid::Uuid::new_v4().as_u128());
         let pool = test_db_pool().await?;
         let subscription_db = SubscriptionDB::new(pool.clone(), schema.clone());
@@ -1410,14 +1408,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         let new_status = FederationLaunchStatus::InProgress;
         // from Requested -> InProgress
@@ -1435,14 +1427,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         let new_status = FederationLaunchStatus::Ready;
 
@@ -1463,14 +1449,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         // Transition to InfrastructureReady first
         db.update_status(
@@ -1503,14 +1483,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         let guardian_endpoints = vec![
             Endpoint::from_str("http://example1.com")?,
@@ -1543,14 +1517,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         let guardian_endpoints = vec![
             Endpoint::from_str("http://example1.com")?,
@@ -1561,20 +1529,20 @@ mod tests {
             Endpoint::from_str("http://guardian-ui-example2.com")?,
         ];
 
-        assert!(db
-            .set_guardian_endpoint(
+        assert!(
+            db.set_guardian_endpoint(
                 launch_config.launch_id,
                 guardian_endpoints,
                 admin_ui_endpoints,
             )
             .await
-            .is_err());
+            .is_err()
+        );
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_create_get_federation_launch_configuration_success_subscription(
-    ) -> Result<()> {
+    async fn test_create_get_federation_launch_configuration_success_subscription() -> Result<()> {
         let schema = format!("schema_{id}", id = uuid::Uuid::new_v4().as_u128());
         let pool = test_db_pool().await?;
         let subscription_db = SubscriptionDB::new(pool.clone(), schema.clone());
@@ -1582,21 +1550,15 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
         assert_eq!(launch_config.status, FederationLaunchStatus::Requested);
         Ok(())
     }
 
     #[tokio::test]
-    async fn test_create_get_federation_launch_configuration_success_fiat_subscription(
-    ) -> Result<()> {
+    async fn test_create_get_federation_launch_configuration_success_fiat_subscription()
+    -> Result<()> {
         let schema = format!("schema_{id}", id = uuid::Uuid::new_v4().as_u128());
         let pool = test_db_pool().await?;
         let subscription_db = FiatSubscriptionDB::new(pool.clone(), schema.clone());
@@ -1612,8 +1574,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_get_federation_launch_configuration_not_found_subscription(
-    ) -> Result<()> {
+    async fn test_create_get_federation_launch_configuration_not_found_subscription() -> Result<()>
+    {
         let schema = format!("schema_{id}", id = uuid::Uuid::new_v4().as_u128());
         let pool = test_db_pool().await?;
         let subscription_db = SubscriptionDB::new(pool.clone(), schema.clone());
@@ -1627,8 +1589,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_get_federation_launch_configuration_not_found_fiat_subscription(
-    ) -> Result<()> {
+    async fn test_create_get_federation_launch_configuration_not_found_fiat_subscription()
+    -> Result<()> {
         let schema = format!("schema_{id}", id = uuid::Uuid::new_v4().as_u128());
         let pool = test_db_pool().await?;
         let subscription_db = FiatSubscriptionDB::new(pool.clone(), schema.clone());
@@ -1655,14 +1617,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         let liquidity = FederationLaunchLiquidity {
             status: FederationLaunchLiquidityStatus::FundsRequested,
@@ -1713,14 +1669,8 @@ mod tests {
         let db = FederationLauncherDB::new(pool.clone(), schema.clone());
         db.create_table_if_not_exists().await?;
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         // First update with FundsRequested status
         let liquidity_requested = FederationLaunchLiquidity {
@@ -2153,17 +2103,13 @@ mod tests {
         db.create_table_if_not_exists().await?;
 
         let wallet = mock_random_invoice(FelaasWallet::faux());
-        let launch_config = create_subscription_test_launch(
-            &schema,
-            &pool,
-            &wallet,
-            &db,
-            &subscription_db,
-        )
-        .await?;
+        let launch_config =
+            create_subscription_test_launch(&schema, &pool, &wallet, &db, &subscription_db).await?;
 
         // Test setting invite code with database operation
-        let invite_code= InviteCode::from_str("fed11qgqpw9thwvaz7te3xgmjuvpwxqhrzw33xvurgwf0qqqjqzp0as69398jqst9r5jcf04uqgea5pdlmuhxlqw5zhst2fmqlqkvs387m3")?;
+        let invite_code = InviteCode::from_str(
+            "fed11qgqpw9thwvaz7te3xgmjuvpwxqhrzw33xvurgwf0qqqjqzp0as69398jqst9r5jcf04uqgea5pdlmuhxlqw5zhst2fmqlqkvs387m3",
+        )?;
         db.set_invite_code(launch_config.launch_id.clone(), invite_code.clone())
             .await?;
 
@@ -2190,7 +2136,9 @@ mod tests {
         db.create_table_if_not_exists().await?;
 
         let non_existent_id = FederationLaunchId::from_str("00000000-0000-0000-0000-000000000000")?;
-        let invite_code= InviteCode::from_str("fed11qgqpw9thwvaz7te3xgmjuvpwxqhrzw33xvurgwf0qqqjqzp0as69398jqst9r5jcf04uqgea5pdlmuhxlqw5zhst2fmqlqkvs387m3")?;
+        let invite_code = InviteCode::from_str(
+            "fed11qgqpw9thwvaz7te3xgmjuvpwxqhrzw33xvurgwf0qqqjqzp0as69398jqst9r5jcf04uqgea5pdlmuhxlqw5zhst2fmqlqkvs387m3",
+        )?;
         let result = db.set_invite_code(non_existent_id, invite_code).await;
         assert!(matches!(
             result,

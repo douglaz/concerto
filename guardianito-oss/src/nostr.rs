@@ -55,15 +55,15 @@ pub enum GuardianRole {
 pub enum NostrCommand {
     // Guardian registration
     RegisterGuardian { role: GuardianRole },
-    
+
     // Federation setup
     StartFederation { name: String, num_guardians: u8 },
     JoinFederation { federation_id: String },
-    
+
     // DKG coordination
     StartDkg,
     SubmitDkgShare { share: String },
-    
+
     // Status queries
     GetStatus,
     ListFederations,
@@ -73,20 +73,34 @@ pub enum NostrCommand {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NostrBotEvent {
     // Registration responses
-    GuardianRegistered { guardian_id: String },
-    
+    GuardianRegistered {
+        guardian_id: String,
+    },
+
     // Federation events
-    FederationCreated { federation_id: String, invite_code: String },
-    GuardianJoined { guardian_npub: String },
-    
+    FederationCreated {
+        federation_id: String,
+        invite_code: String,
+    },
+    GuardianJoined {
+        guardian_npub: String,
+    },
+
     // DKG events
     DkgStarted,
-    DkgProgress { current: u8, total: u8 },
+    DkgProgress {
+        current: u8,
+        total: u8,
+    },
     DkgComplete,
-    
+
     // Status updates
-    StatusUpdate { message: String },
-    Error { message: String },
+    StatusUpdate {
+        message: String,
+    },
+    Error {
+        message: String,
+    },
 }
 
 impl NostrBot {
@@ -98,21 +112,21 @@ impl NostrBot {
         } else {
             Keys::parse(private_key)?
         };
-        
+
         info!("Bot npub: {}", keys.public_key().to_bech32()?);
-        
+
         // Create client
         let client = Client::new(keys.clone());
-        
+
         // Add relays
         for relay_url in &relays {
             client.add_relay(relay_url).await?;
             info!("Added relay: {}", relay_url);
         }
-        
+
         // Connect to relays
         client.connect().await;
-        
+
         Ok(Self {
             client,
             keys,
@@ -120,43 +134,46 @@ impl NostrBot {
             state: Arc::new(RwLock::new(BotState::default())),
         })
     }
-    
+
     /// Start listening for messages and commands
     pub async fn start(&self) -> Result<()> {
         info!("Starting Nostr bot...");
-        
+
         // Subscribe to direct messages (NIP-04)
         let dm_filter = Filter::new()
             .kind(Kind::EncryptedDirectMessage)
             .pubkey(self.keys.public_key());
-        
+
         // Subscribe to mentions
         let mention_filter = Filter::new()
             .kind(Kind::TextNote)
             .pubkey(self.keys.public_key());
-        
+
         // Subscribe to our custom federation coordination events (30000-39999 range for parameterized replaceable events)
         let federation_filter = Filter::new()
             .kind(Kind::ParameterizedReplaceable(30100))
             .author(self.keys.public_key());
-        
-        let subscription_id = self.client
+
+        let subscription_id = self
+            .client
             .subscribe(vec![dm_filter, mention_filter, federation_filter], None)
             .await?;
-        
+
         info!("Subscribed with ID: {:?}", subscription_id);
-        
+
         // Handle events
-        self.client.handle_notifications(|notification| async {
-            if let RelayPoolNotification::Event { event, .. } = notification {
-                self.handle_event(*event).await;
-            }
-            Ok(false) // Continue listening
-        }).await?;
-        
+        self.client
+            .handle_notifications(|notification| async {
+                if let RelayPoolNotification::Event { event, .. } = notification {
+                    self.handle_event(*event).await;
+                }
+                Ok(false) // Continue listening
+            })
+            .await?;
+
         Ok(())
     }
-    
+
     /// Handle incoming Nostr events
     async fn handle_event(&self, event: Event) {
         match event.kind {
@@ -180,18 +197,18 @@ impl NostrBot {
             }
         }
     }
-    
+
     /// Handle direct messages
     async fn handle_dm(&self, event: Event) -> Result<()> {
         // Decrypt the message
-        let decrypted = nip04::decrypt(
-            &self.keys.secret_key(),
-            &event.pubkey,
-            &event.content,
-        )?;
-        
-        info!("Received DM from {}: {}", event.pubkey.to_bech32()?, decrypted);
-        
+        let decrypted = nip04::decrypt(&self.keys.secret_key(), &event.pubkey, &event.content)?;
+
+        info!(
+            "Received DM from {}: {}",
+            event.pubkey.to_bech32()?,
+            decrypted
+        );
+
         // Try to parse as command
         if let Ok(command) = serde_json::from_str::<NostrCommand>(&decrypted) {
             self.handle_command(event.pubkey, command).await?;
@@ -200,47 +217,49 @@ impl NostrBot {
             self.send_dm(
                 event.pubkey,
                 "Unknown command. Send 'help' for available commands.",
-            ).await?;
+            )
+            .await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// Handle mentions in public notes
     async fn handle_mention(&self, event: Event) -> Result<()> {
-        info!("Mentioned by {}: {}", event.pubkey.to_bech32()?, event.content);
-        
+        info!(
+            "Mentioned by {}: {}",
+            event.pubkey.to_bech32()?,
+            event.content
+        );
+
         // Reply to the mention
-        let tags = vec![
-            Tag::event(event.id),
-            Tag::public_key(event.pubkey),
-        ];
+        let tags = vec![Tag::event(event.id), Tag::public_key(event.pubkey)];
         let reply = EventBuilder::text_note(
             format!("Hello! I'm a Fedimint guardian bot. DM me to get started."),
             tags,
         );
         let reply_event = self.client.sign_event_builder(reply).await?;
-        
+
         self.client.send_event(reply_event).await?;
         Ok(())
     }
-    
+
     /// Handle federation coordination events
     async fn handle_federation_event(&self, event: Event) -> Result<()> {
         info!("Federation event: {:?}", event);
         // TODO: Implement federation-specific event handling
         Ok(())
     }
-    
+
     /// Handle parsed commands
     async fn handle_command(&self, sender: PublicKey, command: NostrCommand) -> Result<()> {
         use NostrCommand::*;
-        
+
         let response = match command {
             RegisterGuardian { role } => {
                 // Register the guardian with the specified role
                 let guardian_id = format!("guardian_{}", sender.to_bech32()?);
-                
+
                 // Update state
                 let mut state = self.state.write().await;
                 state.active_conversations.push(ConversationInfo {
@@ -248,14 +267,17 @@ impl NostrBot {
                     guardian_role: role.clone(),
                     last_message_time: Timestamp::now(),
                 });
-                
+
                 NostrBotEvent::GuardianRegistered { guardian_id }
             }
-            
-            StartFederation { name, num_guardians: _ } => {
+
+            StartFederation {
+                name,
+                num_guardians: _,
+            } => {
                 // Initialize a new federation setup
                 let federation_id = uuid::Uuid::new_v4().to_string();
-                
+
                 let mut state = self.state.write().await;
                 state.active_federations.push(FederationSetup {
                     federation_id: federation_id.clone(),
@@ -263,54 +285,46 @@ impl NostrBot {
                     other_guardians: Vec::new(),
                     status: SetupStatus::WaitingForGuardians,
                 });
-                
+
                 NostrBotEvent::FederationCreated {
                     federation_id,
                     invite_code: format!("fed1_test_{}", name), // Simplified invite code
                 }
             }
-            
-            GetStatus => {
-                NostrBotEvent::StatusUpdate {
-                    message: "Bot is operational".to_string(),
-                }
-            }
-            
-            _ => {
-                NostrBotEvent::Error {
-                    message: "Command not yet implemented".to_string(),
-                }
-            }
+
+            GetStatus => NostrBotEvent::StatusUpdate {
+                message: "Bot is operational".to_string(),
+            },
+
+            _ => NostrBotEvent::Error {
+                message: "Command not yet implemented".to_string(),
+            },
         };
-        
+
         // Send response as DM
         let response_json = serde_json::to_string(&response)?;
         self.send_dm(sender, &response_json).await?;
-        
+
         Ok(())
     }
-    
+
     /// Send a direct message to a user
     async fn send_dm(&self, recipient: PublicKey, message: &str) -> Result<()> {
-        let encrypted = nip04::encrypt(
-            &self.keys.secret_key(),
-            &recipient,
-            message,
-        )?;
-        
+        let encrypted = nip04::encrypt(&self.keys.secret_key(), &recipient, message)?;
+
         // Build encrypted direct message event (Kind 4)
         let event_builder = EventBuilder::new(
             Kind::EncryptedDirectMessage,
             encrypted,
             vec![Tag::public_key(recipient)],
         );
-        
+
         let event = self.client.sign_event_builder(event_builder).await?;
         self.client.send_event(event).await?;
         info!("Sent DM to {}", recipient.to_bech32()?);
         Ok(())
     }
-    
+
     /// Broadcast a public status update
     pub async fn broadcast_status(&self, message: &str) -> Result<()> {
         let event_builder = EventBuilder::text_note(message, vec![]);
@@ -324,20 +338,20 @@ impl NostrBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_bot_creation() -> Result<()> {
         // Generate a test key
         let keys = Keys::generate();
         let private_key = keys.secret_key().to_bech32()?;
-        
+
         // Use a test relay (you might want to use a mock in real tests)
         let relays = vec!["wss://relay.damus.io".to_string()];
-        
+
         // This would normally connect to real relays, so we just test creation
         // In production tests, you'd want to use a mock relay
         let _bot = NostrBot::new(&private_key, relays).await?;
-        
+
         Ok(())
     }
 }

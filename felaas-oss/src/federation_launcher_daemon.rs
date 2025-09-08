@@ -14,21 +14,23 @@ use tracing::{debug, error, info, warn};
 use url::Url;
 use urlencoding;
 
+use crate::PgPool;
 use crate::common::Endpoint;
-use crate::fedimint_status_client::{verify_guardians_accessible, GuardianStatusError};
+use crate::fedimint_status_client::{GuardianStatusError, verify_guardians_accessible};
 use crate::guardian_launcher_tng::{
-    apply_guardian_deployment_objects, apply_guardian_ui_objects, naming,
-    render_guardian_deployment_objects, render_guardian_ui_objects, GuardianDeploymentParameters,
-    RenderGuardianUiArgs,
+    GuardianDeploymentParameters, RenderGuardianUiArgs, apply_guardian_deployment_objects,
+    apply_guardian_ui_objects, naming, render_guardian_deployment_objects,
+    render_guardian_ui_objects,
 };
 use crate::launch::configuration::db::FederationLauncherDB;
 use crate::launch::configuration::{FederationLaunchConfiguration, FederationLaunchStatus};
 use crate::og_registry::db::OgRegistryDB;
-use crate::PgPool;
 
 #[derive(Debug, Error)]
 pub(crate) enum DeploymentError {
-    #[error("Deployment timeout exceeded for {namespace}/{deployment_name} after {timeout_secs} seconds")]
+    #[error(
+        "Deployment timeout exceeded for {namespace}/{deployment_name} after {timeout_secs} seconds"
+    )]
     DeploymentTimeout {
         namespace: String,
         deployment_name: String,

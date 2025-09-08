@@ -162,10 +162,7 @@ pub async fn build_client(
             &Bip39RootSecretStrategy::<12>::to_root_secret(&mnemonic),
             &federation_id,
         ));
-        let client = client_config
-            .join(root_secret)
-            .await
-            .map(Arc::new)?;
+        let client = client_config.join(root_secret).await.map(Arc::new)?;
         Ok(client)
     } else {
         bail!("Database not initialized and invite code not provided");
@@ -182,10 +179,7 @@ pub async fn create_pg_pool(pg: &PgParams) -> anyhow::Result<PgPool> {
             .map_err(|e| anyhow::anyhow!("Invalid Postgres port: {e}"))?,
     );
     cfg.user = Some(pg.pguser.clone());
-    cfg.password = pg
-        .pgpassword
-        .as_ref()
-        .map(|s| s.clone());
+    cfg.password = pg.pgpassword.as_ref().map(|s| s.clone());
     cfg.dbname = Some(pg.pgdatabase.clone());
     let pool = cfg.create_pool(
         Some(deadpool_postgres::Runtime::Tokio1),
@@ -330,8 +324,9 @@ pub fn random_invoice(
         <fedimint_core::bitcoin::hashes::sha256::Hash as fedimint_core::BitcoinHash>::hash(
             &preimage,
         );
-    let payment_secret: [u8; 32] =
-        fedimint_core::secp256k1::rand::Rng::r#gen(&mut fedimint_core::secp256k1::rand::thread_rng());
+    let payment_secret: [u8; 32] = fedimint_core::secp256k1::rand::Rng::r#gen(
+        &mut fedimint_core::secp256k1::rand::thread_rng(),
+    );
     let payment_secret = fedimint_ln_common::lightning_invoice::PaymentSecret(payment_secret);
 
     let invoice = fedimint_ln_common::lightning_invoice::InvoiceBuilder::new(

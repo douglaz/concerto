@@ -1,17 +1,17 @@
 use std::str::FromStr;
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{Context, Result, bail, ensure};
 use chrono::{DateTime, Utc};
 use clap::{Args, Subcommand};
 use fedimint_core::bitcoin::Network;
-use futures::{pin_mut, StreamExt};
+use futures::{StreamExt, pin_mut};
 use k8s_openapi::api::apps::v1::Deployment;
 use k8s_openapi::api::core::v1::{Namespace, PersistentVolumeClaim, Secret, Service};
 use k8s_openapi::api::networking::v1::Ingress;
-use kube::api::{DeleteParams, PostParams};
 use kube::Api;
+use kube::api::{DeleteParams, PostParams};
 use kube_runtime::reflector::Lookup;
-use kube_runtime::{watcher, WatchStreamExt};
+use kube_runtime::{WatchStreamExt, watcher};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 use tracing::debug;
@@ -1203,7 +1203,9 @@ pub async fn run_guardian_launcher(guardian_cmd: GuardianLauncherCmd) -> Result<
                 .position(|&name| name == args.guardian_name)
                 .ok_or_else(|| {
                     let guardian_name = &args.guardian_name;
-                    anyhow::anyhow!("Invalid guardian name: {guardian_name}. Must be one of: {GUARDIAN_NAMES:?}")
+                    anyhow::anyhow!(
+                        "Invalid guardian name: {guardian_name}. Must be one of: {GUARDIAN_NAMES:?}"
+                    )
                 })? as u8;
             let params = GuardianDeploymentParameters {
                 federation_name: args.federation_name,
@@ -1228,7 +1230,9 @@ pub async fn run_guardian_launcher(guardian_cmd: GuardianLauncherCmd) -> Result<
                 .position(|&name| name == args.guardian_name)
                 .ok_or_else(|| {
                     let guardian_name = &args.guardian_name;
-                    anyhow::anyhow!("Invalid guardian name: {guardian_name}. Must be one of: {GUARDIAN_NAMES:?}")
+                    anyhow::anyhow!(
+                        "Invalid guardian name: {guardian_name}. Must be one of: {GUARDIAN_NAMES:?}"
+                    )
                 })? as u8;
             let params = GuardianDeploymentParameters {
                 federation_name: args.federation_name,

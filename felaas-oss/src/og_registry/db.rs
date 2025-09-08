@@ -3,9 +3,9 @@ use postgres_from_row::FromRow;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
+use crate::PgPool;
 use crate::common::ChatUserId;
 use crate::og_registry::error::{OgRegistryError, Result};
-use crate::PgPool;
 
 const OG_REGISTRY_TABLE: &str = "og_registry";
 

@@ -8,6 +8,7 @@ use postgres_from_row::FromRow;
 use thiserror::Error;
 use tracing::debug;
 
+use crate::PgPool;
 use crate::amount::Amount;
 use crate::common::ChatUserId;
 use crate::launch::subscription::{
@@ -16,7 +17,6 @@ use crate::launch::subscription::{
     SubscriptionPaymentStatus, SubscriptionStatus,
 };
 use crate::wallet::core::FelaasWallet;
-use crate::PgPool;
 
 const LAST_UPDATED_AT_COLUMN: &str = "last_updated_at";
 const CREATED_AT_COLUMN: &str = "created_at";
@@ -495,7 +495,7 @@ mod tests {
 
     use super::*;
     use crate::amount::Amount;
-    use crate::common::{mock_random_invoice, ChatUserId};
+    use crate::common::{ChatUserId, mock_random_invoice};
     use crate::{PGDATABASE, PGHOST, PGPASSWORD, PGPORT, PGUSER};
 
     // Helper to create a test database pool
