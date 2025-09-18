@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for FeLaaS
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: felaas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: felaas
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - concerto
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U felaas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FeLaaS Provider
+  felaas:
+    build:
+      context: .
+      dockerfile: Dockerfile.felaas
+    environment:
+      DATABASE_URL: postgres://felaas:${POSTGRES_PASSWORD:-changeme}@postgres/felaas
+      PROVIDER_NSEC: ${PROVIDER_NSEC}
+      PROVIDER_NAME: ${PROVIDER_NAME:-"Local FeLaaS Provider"}
+      BASE_SLOT_PRICE_SATS: ${BASE_SLOT_PRICE_SATS:-100000}
+      NOSTR_RELAYS: ${NOSTR_RELAYS:-"wss://relay.damus.io,wss://relay.nostr.band"}
+      API_PORT: 8080
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - concerto
+    restart: unless-stopped
+    volumes:
+      - felaas_data:/data
+
+  # Guardianito instance 1
+  guardianito-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.guardianito
+    environment:
+      OWNER_NPUB: ${OWNER_NPUB_1}
+      GUARDIAN_NSEC: ${GUARDIAN_NSEC_1}
+      NOSTR_RELAYS: ${NOSTR_RELAYS:-"wss://relay.damus.io,wss://relay.nostr.band"}
+      STATE_DB_PATH: /data/guardianito.db
+      RUST_LOG: ${RUST_LOG:-info}
+    networks:
+      - concerto
+    restart: unless-stopped
+    volumes:
+      - guardianito1_data:/data
+
+  # Guardianito instance 2
+  guardianito-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.guardianito
+    environment:
+      OWNER_NPUB: ${OWNER_NPUB_2}
+      GUARDIAN_NSEC: ${GUARDIAN_NSEC_2}
+      NOSTR_RELAYS: ${NOSTR_RELAYS:-"wss://relay.damus.io,wss://relay.nostr.band"}
+      STATE_DB_PATH: /data/guardianito.db
+      RUST_LOG: ${RUST_LOG:-info}
+    networks:
+      - concerto
+    restart: unless-stopped
+    volumes:
+      - guardianito2_data:/data
+
+  # Guardianito instance 3
+  guardianito-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.guardianito
+    environment:
+      OWNER_NPUB: ${OWNER_NPUB_3}
+      GUARDIAN_NSEC: ${GUARDIAN_NSEC_3}
+      NOSTR_RELAYS: ${NOSTR_RELAYS:-"wss://relay.damus.io,wss://relay.nostr.band"}
+      STATE_DB_PATH: /data/guardianito.db
+      RUST_LOG: ${RUST_LOG:-info}
+    networks:
+      - concerto
+    restart: unless-stopped
+    volumes:
+      - guardianito3_data:/data
+
+  # Monitoring stack - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - concerto
+    restart: unless-stopped
+
+  # Monitoring stack - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - concerto
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  concerto:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  felaas_data:
+  guardianito1_data:
+  guardianito2_data:
+  guardianito3_data:
+  prometheus_data:
+  grafana_data:

@@ -1,0 +1,47 @@
+# Build stage
+FROM rust:1.75 as builder
+
+WORKDIR /app
+
+# Copy workspace files
+COPY Cargo.toml Cargo.lock ./
+COPY concerto-common ./concerto-common
+COPY concerto-guardianito ./concerto-guardianito
+COPY concerto-felaas ./concerto-felaas
+
+# Build dependencies first for better caching
+RUN cargo build --release --package concerto-guardianito
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 guardianito
+
+WORKDIR /home/guardianito
+
+# Copy binary from builder
+COPY --from=builder /app/target/release/guardianito /usr/local/bin/guardianito
+
+# Create data directory
+RUN mkdir -p /data && chown guardianito:guardianito /data
+
+USER guardianito
+
+# Environment variables
+ENV RUST_LOG=info
+ENV STATE_DB_PATH=/data/guardianito.db
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD guardianito health || exit 1
+
+# Default command
+ENTRYPOINT ["guardianito"]
+CMD ["daemon"]

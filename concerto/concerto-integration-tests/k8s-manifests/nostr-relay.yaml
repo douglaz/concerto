@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nostr-relay
+  namespace: default
+spec:
+  ports:
+  - port: 8008
+    targetPort: 8080
+    name: websocket
+  selector:
+    app: nostr-relay
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nostr-relay
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nostr-relay
+  template:
+    metadata:
+      labels:
+        app: nostr-relay
+    spec:
+      containers:
+      - name: relay
+        image: scsibug/nostr-rs-relay:latest
+        ports:
+        - containerPort: 8080
+          name: websocket
+        env:
+        - name: RUST_LOG
+          value: info,nostr_rs_relay=debug
+        volumeMounts:
+        - name: config
+          mountPath: /usr/src/app/config.toml
+          subPath: config.toml
+      volumes:
+      - name: config
+        configMap:
+          name: nostr-relay-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nostr-relay-config
+  namespace: default
+data:
+  config.toml: |
+    # Nostr relay configuration for Concerto testing
+    [info]
+    name = "Concerto Test Relay"
+    description = "Nostr relay for Concerto integration testing"
+    
+    [network]
+    address = "0.0.0.0"
+    port = 8080
+    
+    [database]
+    engine = "sqlite"
+    
+    [limits]
+    messages_per_sec = 100
+    max_event_bytes = 131072
+    max_ws_message_bytes = 131072
+    max_ws_frame_bytes = 131072
+    
+    [authorization]
+    pubkey_whitelist = []

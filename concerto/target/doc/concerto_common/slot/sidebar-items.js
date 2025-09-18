@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HealthStatus","SlotState"],"struct":["AllocateSlotRequest","FedimintSlot","ResourceBundle","ResourceUsage","SlotAllocation","SlotEndpoint","SlotStatus"]};

@@ -1,0 +1,15 @@
+/home/master/p/federation-tools-oss/concerto/target/debug/deps/precis_core-e8aeebe8aa134a09.d: /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/lib.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/common.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/context.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/error.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/profile.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/stringclasses.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/public.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/precis_tables.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/context_tables.rs
+
+/home/master/p/federation-tools-oss/concerto/target/debug/deps/libprecis_core-e8aeebe8aa134a09.rmeta: /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/lib.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/common.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/context.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/error.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/profile.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/stringclasses.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/public.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/precis_tables.rs /home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/context_tables.rs
+
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/lib.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/common.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/context.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/error.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/profile.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/precis-core-0.1.11/src/stringclasses.rs:
+/home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/public.rs:
+/home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/precis_tables.rs:
+/home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out/context_tables.rs:
+
+# env-dep:OUT_DIR=/home/master/p/federation-tools-oss/concerto/target/debug/build/precis-core-95a72c803ffe0569/out
