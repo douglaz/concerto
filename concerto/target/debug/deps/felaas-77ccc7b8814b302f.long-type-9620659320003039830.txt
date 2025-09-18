@@ -1,0 +1,2 @@
+fn(axum::extract::State<Arc<ApiState>>) -> impl std::future::Future<Output = std::result::Result<axum::Json<PricingResponse>, concerto_common::ConcertoError>> {get_pricing}
+fn(axum::extract::State<Arc<ApiState>>) -> impl std::future::Future<Output = std::result::Result<axum::Json<PricingResponse>, concerto_common::ConcertoError>> {get_pricing}: axum::handler::Handler<_, _>

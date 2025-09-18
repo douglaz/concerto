@@ -1,0 +1,55 @@
+[package]
+name = "concerto-guardianito"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "guardianito"
+path = "src/main.rs"
+
+[dependencies]
+# Workspace dependencies
+concerto-common = { path = "../concerto-common" }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+# CLI
+clap = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Nostr
+nostr-sdk = { workspace = true }
+
+# Fedimint
+fedimint-api-client = { workspace = true }
+fedimint-core = { workspace = true }
+secrecy = { workspace = true }
+
+# Crypto
+bitcoin = { workspace = true }
+secp256k1 = { workspace = true }
+sha2 = { workspace = true }
+
+# Utilities
+uuid = { workspace = true }
+chrono = { workspace = true }
+url = { workspace = true }
+reqwest = { workspace = true }
+
+# Storage
+sled = "0.34"

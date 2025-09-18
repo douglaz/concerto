@@ -1,0 +1,12 @@
+/home/master/p/federation-tools-oss/concerto/target/debug/deps/negentropy-3201966b0362c823.d: /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/lib.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/constants.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/encoding.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/error.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/id.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/sha256.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/storage.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/types.rs
+
+/home/master/p/federation-tools-oss/concerto/target/debug/deps/libnegentropy-3201966b0362c823.rmeta: /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/lib.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/constants.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/encoding.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/error.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/id.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/sha256.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/storage.rs /home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/types.rs
+
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/lib.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/constants.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/encoding.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/error.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/id.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/sha256.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/storage.rs:
+/home/master/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/negentropy-0.5.0/src/types.rs:

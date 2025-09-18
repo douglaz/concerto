@@ -1,0 +1,1 @@
+impl std::future::Future<Output = std::result::Result<nostr_sdk::Event, nostr_sdk::event::Error>>

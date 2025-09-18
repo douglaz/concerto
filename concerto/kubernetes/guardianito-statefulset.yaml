@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: guardianito
+  namespace: concerto
+  labels:
+    app: guardianito
+    component: guardian
+spec:
+  serviceName: guardianito
+  replicas: 3
+  selector:
+    matchLabels:
+      app: guardianito
+  template:
+    metadata:
+      labels:
+        app: guardianito
+        component: guardian
+    spec:
+      containers:
+      - name: guardianito
+        image: concerto/guardianito:latest
+        imagePullPolicy: Always
+        env:
+        - name: OWNER_NPUB
+          valueFrom:
+            secretKeyRef:
+              name: guardianito-secrets
+              key: owner-npub
+        - name: GUARDIAN_NSEC
+          valueFrom:
+            secretKeyRef:
+              name: guardianito-secrets
+              key: guardian-nsec
+        - name: NOSTR_RELAYS
+          value: "wss://relay.damus.io,wss://relay.nostr.band,wss://nostr.wine"
+        - name: STATE_DB_PATH
+          value: "/data/guardianito.db"
+        - name: RUST_LOG
+          value: "info"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardianito
+  namespace: concerto
+  labels:
+    app: guardianito
+spec:
+  clusterIP: None
+  ports:
+  - port: 8080
+    name: metrics
+  selector:
+    app: guardianito

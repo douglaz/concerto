@@ -1,0 +1,68 @@
+[workspace]
+members = ["felaas-oss", "felaas-oss-integration-tests", "guardianito-oss"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Concerto Team"]
+license = "MIT"
+rust-version = "1.85"
+description = "Concerto: Orchestrating Fedimint Federations"
+repository = "https://github.com/your-org/concerto"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+axum = "0.8"
+axum-extra = { version = "0.10", features = ["query"] }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+deadpool-postgres = "0.14"
+futures = "0.3"
+hex = "0.4"
+itertools = "0.13"
+nostr-sdk = "0.36"
+postgres-from-row = "0.5"
+postgres-types = { version = "0.2", features = ["derive", "with-chrono-0_4", "with-serde_json-1", "with-uuid-1"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+secrecy = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+sha2 = "0.10"
+thiserror = "2.0"
+tokio = { version = "1.0", features = ["full"] }
+tokio-postgres = "0.7"
+tower-http = { version = "0.6", features = ["trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+url = "2.5"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Fedimint dependencies - using crates.io version (no C dependencies)
+fedimint-api-client = "0.8.1"
+fedimint-client = "0.8.1"
+fedimint-core = "0.8.1"
+fedimint-ln-client = "0.8.1"
+fedimint-ln-common = "0.8.1"
+fedimint-mint-client = "0.8.1"
+fedimint-wallet-client = "0.8.1"
+fedimint-derive-secret = "0.8.1"
+fedimint-cursed-redb = "0.8.1"
+fedimint-bip39 = "0.8.1"
+
+# Additional dependencies needed by Fedimint 0.8.1
+urlencoding = "2.1"
+lru = "0.12"
+strum = { version = "0.26", features = ["derive"] }
+strum_macros = "0.26"
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Kubernetes dependencies - latest versions
+k8s-openapi = { version = "0.25.0", features = ["latest"] }
+kube = "1.0"
+kube-runtime = "1.0"
+
+# Lightning
+lightning-invoice = "0.32"

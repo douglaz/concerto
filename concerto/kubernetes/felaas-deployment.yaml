@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: felaas
+  namespace: concerto
+  labels:
+    app: felaas
+    component: provider
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: felaas
+  template:
+    metadata:
+      labels:
+        app: felaas
+        component: provider
+    spec:
+      containers:
+      - name: felaas
+        image: concerto/felaas:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: api
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: felaas-secrets
+              key: database-url
+        - name: PROVIDER_NSEC
+          valueFrom:
+            secretKeyRef:
+              name: felaas-secrets
+              key: provider-nsec
+        - name: PROVIDER_NAME
+          value: "Production FeLaaS Provider"
+        - name: BASE_SLOT_PRICE_SATS
+          value: "100000"
+        - name: NOSTR_RELAYS
+          value: "wss://relay.damus.io,wss://relay.nostr.band,wss://nostr.wine"
+        - name: API_PORT
+          value: "8080"
+        - name: RUST_LOG
+          value: "info"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: felaas
+  namespace: concerto
+  labels:
+    app: felaas
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: felaas
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: felaas-hpa
+  namespace: concerto
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: felaas
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

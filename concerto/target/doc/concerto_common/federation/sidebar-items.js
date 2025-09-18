@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Decision","FederationStatus","GuardianStatus","ParticipantRole"],"struct":["ApplicationDecision","ConsensusConfig","Federation","FederationParticipation","FederationProposal","FederationRequirements","GeographicRequirement","GuardianApplication","GuardianInfo","GuardianSlot"]};

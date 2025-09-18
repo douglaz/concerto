@@ -1,0 +1,2 @@
+fn(axum::extract::Path<std::string::String>, axum::extract::State<Arc<ApiState>>) -> impl std::future::Future<Output = std::result::Result<axum::Json<SlotStatusResponse>, concerto_common::ConcertoError>> {slot_status}
+fn(axum::extract::Path<std::string::String>, axum::extract::State<Arc<ApiState>>) -> impl std::future::Future<Output = std::result::Result<axum::Json<SlotStatusResponse>, concerto_common::ConcertoError>> {slot_status}: axum::handler::Handler<_, _>

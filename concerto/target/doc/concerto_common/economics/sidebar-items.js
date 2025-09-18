@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BillingPeriod","SubscriptionTier"],"struct":["DemandCurve","DiscountTier","EconomicValidation","Invoice","PricingModel","ProviderEconomics","ProviderOffer","ResourcePrices","ResourceUsage","RiskAssessment","RiskFactors","ServiceTerms","SlotPricing"]};
